@@ -17,6 +17,7 @@ app = FastAPI(
     title="Student Course API",
     summary="A sample application showing how to use FastAPI to add a ReST API to a MongoDB collection.",
 )
+#db.createUser({user: "Username",pwd: "Password",roles: [{ role: "readWrite", db: "sessions"}]})
 client = motor.motor_asyncio.AsyncIOMotorClient("mongodb://Username:Password@localhost/sessions?retryWrites=true&w=majority")
 db = client.college
 student_collection = db.get_collection("students")
