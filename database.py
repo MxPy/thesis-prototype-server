@@ -22,7 +22,7 @@ def get_sql_db():
         db.close()
         
 def get_no_sql_db():
-    db = client.college
+    db = client.sessions
     sessions_collection = db.get_collection("sessions")
     try:
         yield sessions_collection
