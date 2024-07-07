@@ -9,7 +9,7 @@ DATABASE_URL = "postgresql://postgres:mysecretpassword@db/users"
 
 
 engine = _sql.create_engine(DATABASE_URL)
-client = motor.motor_asyncio.AsyncIOMotorClient("mongodb://Username:Password@mongo/sessions?retryWrites=true&w=majority&")
+client = motor.motor_asyncio.AsyncIOMotorClient("mongodb://Username:Password@mongo/sessions?retryWrites=true&w=majority")
 
 SessionLocal = _orm.sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = _declarative.declarative_base()
