@@ -46,7 +46,7 @@ async def show_session(db: Session = Depends(get_no_sql_db)):
     """
     if (
         students :=await db.find().to_list(1000)
-    ) is not None:
+    ) is not None and students:
         return students
 
     raise HTTPException(status_code=404, detail=f"any sessions found")
