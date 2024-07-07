@@ -16,6 +16,9 @@ app = FastAPI(
 async def read_root():
 	return {"Hello":"World"}
 
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
 
 app.include_router(autorizationAndAuthentication.router)
 app.include_router(appdevelopmnet.router)
