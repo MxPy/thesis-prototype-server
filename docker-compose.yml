@@ -7,7 +7,7 @@ services:
       db:
         condition: service_healthy
       mongo:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - ./:/code:ro
     environment:
@@ -48,6 +48,12 @@ services:
       MONGO_INITDB_ROOT_USERNAME: Username
       MONGO_INITDB_ROOT_PASSWORD: Password
       MONGO_INITDB_DATABASE: sessions
+    healthcheck:
+      test: ["CMD","mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
 networks:
   app-network:

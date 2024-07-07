@@ -11,6 +11,7 @@ app = FastAPI(
     summary="Prototype Authentication and Authorization Server for mobile app development",
 )
 
+
 @app.get("/")
 async def read_root():
 	return {"Hello":"World"}
