@@ -1,0 +1,58 @@
+version: '3'
+
+services:
+  web:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+      mongo:
+        condition: service_started
+    volumes:
+      - ./:/code:ro
+    environment:
+      - DATABASE_URL=postgresql://postgres:mysecretpassword@db/users
+    ports:
+      - "8000:8000"
+    networks:
+      - app-network
+
+  db:
+    image: postgres:latest
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    expose:
+      - 5433
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=mysecretpassword
+      - POSTGRES_DB=users
+    networks:
+    - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  mongo:
+    image: mongo:latest
+    volumes:
+      - mongo_data:/data/db
+      - ./docker-entrypoint-initdb.d/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - app-network
+    expose:
+      - 27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: Username
+      MONGO_INITDB_ROOT_PASSWORD: Password
+      MONGO_INITDB_DATABASE: sessions
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+      postgres_data: 
+      mongo_data:
