@@ -19,7 +19,9 @@ services:
 
 
   db:
-    image: postgres:latest
+    image: postgres:14
+    #pc
+    #image: postgres:latest
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     expose:
