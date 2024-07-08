@@ -51,39 +51,23 @@ async def show_session(db: Session = Depends(get_no_sql_db)):
 
     raise HTTPException(status_code=404, detail=f"any sessions found")
 
+
 @router.get(
     "/session/{id}",
-    response_description="Get a single session by id",
-    response_model=models.Session,
-    response_model_by_alias=False,
-)
-async def show_session(id: str, db: Session = Depends(get_no_sql_db)):
-    """
-    Get the record for a specific session, looked up by `id`.
-    """
-    if (
-        student := await db.find_one({"_id": ObjectId(id)})
-    ) is not None:
-        return student
-
-    raise HTTPException(status_code=404, detail=f"session {id} not found")
-
-@router.get(
-    "/session/session_id/{id}",
     response_description="Get a single session by session id",
     response_model=models.Session,
     response_model_by_alias=False,
 )
 async def show_session(id: str, db: Session = Depends(get_no_sql_db)):
     """
-    Get the record for a specific session, looked up by `id`.
+    Get the record for a specific session, looked up by `session_id`.
     """
     if (
         session := await db.find_one({"session_id": id})
     ) is not None:
         return session
 
-    raise HTTPException(status_code=404, detail=f"session {id} not found")
+    raise HTTPException(status_code=404, detail=f"session_id {id} not found")
 
 @router.delete("/session/all", response_description="Delete a session")
 async def delete_session(db: Session = Depends(get_no_sql_db)):
@@ -100,14 +84,14 @@ async def delete_session(db: Session = Depends(get_no_sql_db)):
 @router.delete("/session/{id}", response_description="Delete a session")
 async def delete_session(id: str, db: Session = Depends(get_no_sql_db)):
     """
-    Remove a single session record from the database.
+    Remove a single session record from the database, looked up by `session_id`.
     """
-    delete_result = await db.delete_one({"_id": ObjectId(id)})
+    delete_result = await db.delete_one({"session_id": id})
 
     if delete_result.deleted_count == 1:
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-    raise HTTPException(status_code=404, detail=f"Student {id} not found")
+    raise HTTPException(status_code=404, detail=f"session_id {id} not found")
 
 
 
