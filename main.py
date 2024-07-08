@@ -3,12 +3,26 @@ import models
 from database import engine
 from routers import autorizationAndAuthentication, appdevelopmnet
 import uvicorn
+from fastapi.middleware.cors import CORSMiddleware
+
 
 models.Base.metadata.drop_all(bind = engine)
 models.Base.metadata.create_all(bind = engine)
 app = FastAPI(
     title="A&A Prototype",
     summary="Prototype Authentication and Authorization Server for mobile app development",
+)
+
+origins = [
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 

@@ -25,7 +25,7 @@ class Session(BaseModel):
     # but provided as `id` in the API requests and responses.
     id: Optional[PyObjectId] = Field(alias="_id", default=None)
     session_id: str = Field(...)
-    expiration_time: datetime = Field(...)
+    expiration_date: datetime = Field(...)
     model_config = ConfigDict(
         populate_by_name=True,
         arbitrary_types_allowed=True,

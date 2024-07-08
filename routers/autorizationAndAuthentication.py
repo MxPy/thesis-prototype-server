@@ -55,12 +55,13 @@ async def user_login(data:schemas.UserLogin, response: Response, db: Session = D
         if user.username == data.username and Hasher.verify_password(data.password, user.password):
             id = uuid4()
             new_student = await no_db.insert_one(
-                models.Session(id=ObjectId(None), session_id=str(id), expiration_time=datetime.utcnow() + timedelta(seconds=800)).model_dump(by_alias=True, exclude=["id"])
+                models.Session(id=ObjectId(None), session_id=str(id), expiration_date=datetime.utcnow() + timedelta(seconds=800)).model_dump(by_alias=True, exclude=["id"])
             )
             created_student = await no_db.find_one(
                 {"_id": new_student.inserted_id}
             )
-            content = {"id": created_student["session_id"]}
+            content = {"session_id": created_student["session_id"],
+                       "expiration_date": str(created_student["expiration_date"])}
             response = JSONResponse(content=content)
             response.set_cookie(key="Authorization", value=id)
             return response
