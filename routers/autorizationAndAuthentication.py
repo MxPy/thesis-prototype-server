@@ -15,8 +15,8 @@ router = APIRouter(
 
 
 
-@router.post('/post', status_code=status.HTTP_201_CREATED)
-async def create(request:schemas.User, db: Session = Depends(get_sql_db)):
+@router.post('/register', status_code=status.HTTP_201_CREATED)
+async def register_user(request:schemas.User, db: Session = Depends(get_sql_db)):
     new_user = models.User(username = request.username, email = request.email, password = Hasher.get_password_hash(request.password))
     db.add(new_user)
     db.commit()
@@ -24,7 +24,7 @@ async def create(request:schemas.User, db: Session = Depends(get_sql_db)):
     return new_user
 
 @router.delete('/delete/{user_id}', status_code=status.HTTP_204_NO_CONTENT)
-async def delete(user_id: int, db: Session = Depends(get_sql_db)):
+async def delete_user_by_user_id(user_id: int, db: Session = Depends(get_sql_db)):
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id: {user_id} dosen't exist")
@@ -32,8 +32,8 @@ async def delete(user_id: int, db: Session = Depends(get_sql_db)):
     db.commit()
     return None
 
-@router.put('/{user_id}', response_model=schemas.User)
-async def update(user_id: int, request: schemas.User, db: Session = Depends(get_sql_db)):
+@router.put('/update/{user_id}', response_model=schemas.User)
+async def update_user_by_user_id(user_id: int, request: schemas.User, db: Session = Depends(get_sql_db)):
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id: {user_id} dosen't exist")
@@ -49,7 +49,7 @@ async def update(user_id: int, request: schemas.User, db: Session = Depends(get_
 
 
 @router.post("/login", status_code=status.HTTP_200_OK)
-async def user_login(data:schemas.UserLogin, response: Response, db: Session = Depends(get_sql_db), no_db: Session = Depends(get_no_sql_db)):
+async def login_user(data:schemas.UserLogin, response: Response, db: Session = Depends(get_sql_db), no_db: Session = Depends(get_no_sql_db)):
     user = db.query(models.User).filter(models.User.username == data.username).first()
     if user:
         if user.username == data.username and Hasher.verify_password(data.password, user.password):
@@ -69,7 +69,7 @@ async def user_login(data:schemas.UserLogin, response: Response, db: Session = D
 
 
 @router.post("/logout")
-async def session_logout(id: str, response: Response,  no_db: Session = Depends(get_no_sql_db)):
+async def logout_user(id: str, response: Response,  no_db: Session = Depends(get_no_sql_db)):
     response.delete_cookie(key="Authorization")
     
     delete_result = await no_db.delete_one({"session_id": id})

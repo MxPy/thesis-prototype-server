@@ -12,7 +12,7 @@ router = APIRouter(
     tags=['dev'])
 
 @router.delete('/user/delete/all', status_code=status.HTTP_204_NO_CONTENT)
-async def delete(db: Session = Depends(get_sql_db)):
+async def delete_all_users(db: Session = Depends(get_sql_db)):
     user = db.query(models.User).all()
     for us in user:
         db.delete(us)
@@ -20,7 +20,7 @@ async def delete(db: Session = Depends(get_sql_db)):
     return None
 
 @router.get('/user/get/all', response_model=List[schemas.User])
-async def get(db: Session = Depends(get_sql_db)):
+async def get_all_users(db: Session = Depends(get_sql_db)):
     user = db.query(models.User).all()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -28,7 +28,11 @@ async def get(db: Session = Depends(get_sql_db)):
     return user
 
 @router.get('/user/get/{user_id}', response_model=schemas.User)
-async def get(user_id: int, db: Session = Depends(get_sql_db)):
+
+async def get_user_by_user_id(user_id: int, db: Session = Depends(get_sql_db)):
+    """
+    Get the record for a specific session, looked up by `session_id`.
+    """
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id: {user_id} dosen't exist")
@@ -40,9 +44,9 @@ async def get(user_id: int, db: Session = Depends(get_sql_db)):
     response_model=List[models.Session],
     response_model_by_alias=False,
 )
-async def show_session(db: Session = Depends(get_no_sql_db)):
+async def get_all_sessions(db: Session = Depends(get_no_sql_db)):
     """
-    Get all records of sessions.
+    Get all of sessions.
     """
     if (
         students :=await db.find().to_list(1000)
@@ -58,7 +62,7 @@ async def show_session(db: Session = Depends(get_no_sql_db)):
     response_model=models.Session,
     response_model_by_alias=False,
 )
-async def show_session(id: str, db: Session = Depends(get_no_sql_db)):
+async def get_session_by_session_id(id: str, db: Session = Depends(get_no_sql_db)):
     """
     Get the record for a specific session, looked up by `session_id`.
     """
@@ -70,7 +74,7 @@ async def show_session(id: str, db: Session = Depends(get_no_sql_db)):
     raise HTTPException(status_code=404, detail=f"session_id {id} not found")
 
 @router.delete("/session/all", response_description="Delete a session")
-async def delete_session(db: Session = Depends(get_no_sql_db)):
+async def delete_all_sessions(db: Session = Depends(get_no_sql_db)):
     """
     Remove all session records from the database.
     """
@@ -82,7 +86,7 @@ async def delete_session(db: Session = Depends(get_no_sql_db)):
     raise HTTPException(status_code=404, detail="No sessions found")
 
 @router.delete("/session/{id}", response_description="Delete a session")
-async def delete_session(id: str, db: Session = Depends(get_no_sql_db)):
+async def delete_session_by_session_id(id: str, db: Session = Depends(get_no_sql_db)):
     """
     Remove a single session record from the database, looked up by `session_id`.
     """
@@ -102,7 +106,7 @@ async def delete_session(id: str, db: Session = Depends(get_no_sql_db)):
     status_code=status.HTTP_201_CREATED,
     response_model_by_alias=False,
 )
-async def create_session(student: models.Session = Body(...), db: Session = Depends(get_no_sql_db)):
+async def post_custom_session(student: models.Session = Body(...), db: Session = Depends(get_no_sql_db)):
     """
     Insert a new session record.
 

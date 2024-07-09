@@ -20,9 +20,9 @@ services:
 
   db:
     #mac
-    #image: postgres:14
+    image: postgres:14
     #pc
-    image: postgres:latest
+    #image: postgres:latest
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     expose:

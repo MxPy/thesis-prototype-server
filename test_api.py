@@ -18,7 +18,7 @@ def test_call_postgres_user_post_endporint():
             "email": "string",
             "password": "string"
             }
-    response = requests.post("http://localhost:8000/user/post",json = user)
+    response = requests.post("http://localhost:8000/user/register",json = user)
     assert response.status_code == 201
     response = requests.get("http://localhost:8000/dev/user/get/all")
     assert response.status_code == 200
@@ -43,7 +43,7 @@ def test_call__login_mongo_session_post_endporint():
             "email": "string",
             "password": "string"
             }
-    response = requests.post("http://localhost:8000/user/post",json = user)
+    response = requests.post("http://localhost:8000/user/register",json = user)
     assert response.status_code == 201
     response = requests.get("http://localhost:8000/dev/user/get/all")
     assert response.status_code == 200
