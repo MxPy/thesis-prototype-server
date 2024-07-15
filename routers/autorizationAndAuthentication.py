@@ -78,13 +78,13 @@ async def logout_user(id: str, response: Response,  no_db: Session = Depends(get
 
     return {"status": "logged out"}
 
-async def get_auth_user(id: str, request: Request, no_db: Session = Depends(get_no_sql_db)):
+async def get_auth_user(id: schemas.SessionToken, request: Request, no_db: Session = Depends(get_no_sql_db)):
     """verify that user has a valid session"""
     session_id = request.cookies.get("Authorization")
-    if not id:
+    if not id.session_id:
         raise HTTPException(status_code=401)
     if (
-        student := await no_db.find_one({"session_id": id})
+        student := await no_db.find_one({"session_id": id.session_id})
     ) is None:
         raise HTTPException(status_code=403)
         

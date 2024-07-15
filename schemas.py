@@ -13,3 +13,6 @@ class UserLogin(BaseModel):
     password: str 
     class Config:
         orm_mode=True
+
+class SessionToken(BaseModel):
+    session_id: str
