@@ -65,7 +65,10 @@ async def login_user(data:schemas.UserLogin, response: Response, db: Session = D
             response = JSONResponse(content=content)
             response.set_cookie(key="Authorization", value=id)
             return response
-    return False
+    raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                headers={'WWW-Authenticate': 'Bearer'},
+            )
 
 
 @router.post("/logout")
