@@ -101,3 +101,4 @@ async def get_auth_user(id: schemas.SessionToken, request: Request, no_db: Sessi
 @router.get("/", dependencies=[Depends(get_auth_user)])
 async def secret():
     return status.HTTP_200_OK
+
