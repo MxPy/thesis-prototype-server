@@ -11,4 +11,4 @@ RUN pip3 install -r mongoreq.txt
 COPY . .
 
 EXPOSE 8000
-CMD ["python3", "main.py"]s
+CMD ["python3", "main.py"]
