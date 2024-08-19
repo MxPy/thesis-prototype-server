@@ -5,6 +5,7 @@ from uuid import uuid4
 from sqlalchemy.orm import Session
 from fastapi.responses import RedirectResponse, JSONResponse
 from typing import List
+from random import randint
 from security.hashing import Hasher
 from datetime import datetime, timedelta
 from bson import ObjectId
@@ -17,11 +18,27 @@ router = APIRouter(
 
 @router.post('/register', status_code=status.HTTP_201_CREATED)
 async def register_user(request:schemas.User, db: Session = Depends(get_sql_db)):
-    new_user = models.User(username = request.username, email = request.email, password = Hasher.get_password_hash(request.password))
+    user = db.query(models.User).filter(models.User.username == request.username).first()
+    if user:
+        raise HTTPException(status_code=403, detail=f"User with username: {request.username} already exist")
+    code = f"{randint(0, 999999):06d}"
+    new_user = models.User(username = request.username, password = Hasher.get_password_hash(request.password), password_reset_code = Hasher.get_password_hash(code), permission_level= 0)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    return new_user
+    return {"user_id":new_user.id, "password_reset_code": code}
+
+@router.post('/register-admin', status_code=status.HTTP_201_CREATED)
+async def register_user(request:schemas.User, db: Session = Depends(get_sql_db)):
+    user = db.query(models.User).filter(models.User.username == request.username).first()
+    if user:
+        raise HTTPException(status_code=403, detail=f"User with username: {request.username} already exist")
+    code = f"{randint(0, 999999):06d}"
+    new_user = models.User(username = request.username, password = Hasher.get_password_hash(request.password), password_reset_code = Hasher.get_password_hash(code), permission_level= 1)
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return {"user_id":new_user.id, "password_reset_code": code}
 
 @router.delete('/delete/{user_id}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user_by_user_id(user_id: int, db: Session = Depends(get_sql_db)):
@@ -47,6 +64,24 @@ async def update_user_by_user_id(user_id: int, request: schemas.User, db: Sessio
     db.refresh(user)
     return user
 
+@router.put('/reset_password', response_model=schemas.User)
+async def update_user_by_user_id(username: str, password_reset_code:str, new_password:str, db: Session = Depends(get_sql_db)):
+    user = db.query(models.User).filter(models.User.username == username).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id: {username} dosen't exist")
+    if not Hasher.verify_password(password_reset_code, user.password_reset_code):
+       raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    headers={'WWW-Authenticate': 'Bearer'},
+                )
+    if new_password:
+        user.password = Hasher.get_password_hash(new_password)
+    code = f"{randint(0, 999999):06d}"
+    user.password_reset_code = Hasher.get_password_hash(code)
+    db.commit()
+    db.refresh(user)
+    return code
+
 
 @router.post("/login", status_code=status.HTTP_200_OK)
 async def login_user(data:schemas.UserLogin, response: Response, db: Session = Depends(get_sql_db), no_db: Session = Depends(get_no_sql_db)):
@@ -55,7 +90,7 @@ async def login_user(data:schemas.UserLogin, response: Response, db: Session = D
         if user.username == data.username and Hasher.verify_password(data.password, user.password):
             id = uuid4()
             new_student = await no_db.insert_one(
-                models.Session(id=ObjectId(None), session_id=str(id), expiration_date=datetime.utcnow() + timedelta(seconds=800)).model_dump(by_alias=True, exclude=["id"])
+                models.Session(id=ObjectId(None), session_id=str(id), expiration_date=datetime.now() + timedelta(seconds=800)).model_dump(by_alias=True, exclude=["id"])
             )
             created_student = await no_db.find_one(
                 {"_id": new_student.inserted_id}
@@ -87,18 +122,53 @@ async def logout_user(id: str, response: Response,  no_db: Session = Depends(get
 
 async def get_auth_user(id: schemas.SessionToken, request: Request, no_db: Session = Depends(get_no_sql_db)):
     """verify that user has a valid session"""
-    session_id = request.cookies.get("Authorization")
+    #session_id = request.cookies.get("Authorization")
     if not id.session_id:
-        raise HTTPException(status_code=401)
+        raise HTTPException(status_code=401,  detail=f"Wrong session_id")
     if (
         student := await no_db.find_one({"session_id": id.session_id})
     ) is None:
         raise HTTPException(status_code=403)
-        
+    if (student.expiration_date < datetime.now()):
+         raise HTTPException(status_code=401, detail=f"session_id expired")
+    return True
+
+async def get_auth_admin(id: schemas.SessionToken, request: Request, no_db: Session = Depends(get_no_sql_db)):
+    """verify that user has a valid session"""
+    #session_id = request.cookies.get("Authorization")
+    if not id.session_id:
+        raise HTTPException(status_code=401,  detail=f"Wrong session_id")
+    if (
+        student := await no_db.find_one({"session_id": id.session_id})
+    ) is None:
+        raise HTTPException(status_code=403)
+    if student.permission_level < 1:
+        raise HTTPException(status_code=401)
+    if (student.expiration_date < datetime.now()):
+         raise HTTPException(status_code=401, detail=f"session_id expired")
+    return True
+
+async def get_auth_backend_admin(id: schemas.SessionToken, request: Request, no_db: Session = Depends(get_no_sql_db)):
+    """verify that user has a valid session"""
+    #session_id = request.cookies.get("Authorization")
+    if not id.session_id:
+        raise HTTPException(status_code=401,  detail=f"Wrong session_id")
+    if (
+        student := await no_db.find_one({"session_id": id.session_id})
+    ) is None:
+        raise HTTPException(status_code=403)
+    if student.permission_level < 2:
+        raise HTTPException(status_code=401)
     return True
 
 
 @router.get("/", dependencies=[Depends(get_auth_user)])
+async def secret():
+    return status.HTTP_200_OK
+@router.get("/admin", dependencies=[Depends(get_auth_admin)])
+async def secret():
+    return status.HTTP_200_OK
+@router.get("/backend_admin", dependencies=[Depends(get_auth_backend_admin)])
 async def secret():
     return status.HTTP_200_OK
 

@@ -12,8 +12,9 @@ class User(Base):
     __tablename__ = 'auth'
     id = Column(Integer, primary_key=True, index = True)
     username = Column(String)
-    email = Column(String)
     password = Column(String)
+    password_reset_code = Column(String)
+    permission_level = Column(Integer) #0 - user, #1 - admin, #2 - backend admin
     
 class Session(BaseModel):
     """
