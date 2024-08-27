@@ -27,6 +27,7 @@ class Session(BaseModel):
     id: Optional[PyObjectId] = Field(alias="_id", default=None)
     session_id: str = Field(...)
     expiration_date: datetime = Field(...)
+    permission_level: int = Field(...)
     model_config = ConfigDict(
         populate_by_name=True,
         arbitrary_types_allowed=True,

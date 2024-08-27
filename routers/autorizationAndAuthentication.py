@@ -90,7 +90,7 @@ async def login_user(data:schemas.UserLogin, response: Response, db: Session = D
         if user.username == data.username and Hasher.verify_password(data.password, user.password):
             id = uuid4()
             new_student = await no_db.insert_one(
-                models.Session(id=ObjectId(None), session_id=str(id), expiration_date=datetime.now() + timedelta(seconds=800)).model_dump(by_alias=True, exclude=["id"])
+                models.Session(id=ObjectId(None), session_id=str(id), expiration_date=datetime.now() + timedelta(seconds=800), permission_level=user.permission_level).model_dump(by_alias=True, exclude=["id"])
             )
             created_student = await no_db.find_one(
                 {"_id": new_student.inserted_id}
@@ -98,7 +98,7 @@ async def login_user(data:schemas.UserLogin, response: Response, db: Session = D
             content = {"session_id": created_student["session_id"],
                        "expiration_date": str(created_student["expiration_date"])}
             response = JSONResponse(content=content)
-            response.set_cookie(key="Authorization", value=id)
+            #response.set_cookie(key="Authorization", value=id)
             return response
         raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -129,7 +129,7 @@ async def get_auth_user(id: schemas.SessionToken, request: Request, no_db: Sessi
         student := await no_db.find_one({"session_id": id.session_id})
     ) is None:
         raise HTTPException(status_code=403)
-    if (student.expiration_date < datetime.now()):
+    if (student["expiration_date"] < datetime.now()):
          raise HTTPException(status_code=401, detail=f"session_id expired")
     return True
 
@@ -142,9 +142,9 @@ async def get_auth_admin(id: schemas.SessionToken, request: Request, no_db: Sess
         student := await no_db.find_one({"session_id": id.session_id})
     ) is None:
         raise HTTPException(status_code=403)
-    if student.permission_level < 1:
+    if student["permission_level"] < 1:
         raise HTTPException(status_code=401)
-    if (student.expiration_date < datetime.now()):
+    if (student["expiration_date"] < datetime.now()):
          raise HTTPException(status_code=401, detail=f"session_id expired")
     return True
 
@@ -157,7 +157,7 @@ async def get_auth_backend_admin(id: schemas.SessionToken, request: Request, no_
         student := await no_db.find_one({"session_id": id.session_id})
     ) is None:
         raise HTTPException(status_code=403)
-    if student.permission_level < 2:
+    if student["permission_level"] < 2:
         raise HTTPException(status_code=401)
     return True
 
