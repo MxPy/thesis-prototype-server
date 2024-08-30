@@ -8,7 +8,7 @@ from bson import ObjectId
 from pymongo.results import DeleteResult
 
 router = APIRouter(
-    prefix='/dev',
+    prefix='/auth/dev',
     tags=['dev'])
 
 @router.delete('/user/delete/all', status_code=status.HTTP_204_NO_CONTENT)

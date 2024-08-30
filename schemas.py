@@ -15,3 +15,10 @@ class UserLogin(BaseModel):
 
 class SessionToken(BaseModel):
     session_id: str
+    
+class ResetPassword(BaseModel):
+    username: str 
+    password_reset_code: str
+    new_password: str 
+    class Config:
+        orm_mode=True

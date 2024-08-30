@@ -8,13 +8,27 @@ from typing import List
 from random import randint
 from security.hashing import Hasher
 from datetime import datetime, timedelta
+
+import contextlib
 from bson import ObjectId
 
 router = APIRouter(
-    prefix='/user',
-    tags=['user'])
+    prefix='/auth',
+    tags=['auth'])
 
 
+
+@router.on_event('startup')
+async def populate_admin():
+    get_db_wrapper = contextlib.contextmanager(get_sql_db)
+    with get_db_wrapper() as db:
+        user = db.query(models.User).filter(models.User.username == "doman").first()
+        if not user:
+            code = f"{randint(0, 999999):06d}"
+            new_user = models.User(username = "doman", password = Hasher.get_password_hash("doman"), password_reset_code = Hasher.get_password_hash(code), permission_level=2)
+            db.add(new_user)
+            db.commit()
+            db.refresh(new_user)
 
 @router.post('/register', status_code=status.HTTP_201_CREATED)
 async def register_user(request:schemas.User, db: Session = Depends(get_sql_db)):
@@ -64,23 +78,30 @@ async def update_user_by_user_id(user_id: int, request: schemas.User, db: Sessio
     db.refresh(user)
     return user
 
-@router.put('/reset_password', response_model=schemas.User)
-async def update_user_by_user_id(username: str, password_reset_code:str, new_password:str, db: Session = Depends(get_sql_db)):
-    user = db.query(models.User).filter(models.User.username == username).first()
+@router.put('/reset_password')
+async def update_user_by_user_id(request: schemas.ResetPassword, db: Session = Depends(get_sql_db)):
+    user = db.query(models.User).filter(models.User.username == request.username).first()
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id: {username} dosen't exist")
-    if not Hasher.verify_password(password_reset_code, user.password_reset_code):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id: {request.username} dosen't exist")
+    if not Hasher.verify_password(request.password_reset_code, user.password_reset_code):
        raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     headers={'WWW-Authenticate': 'Bearer'},
+                    detail=f"Wrong username or password reset code"
                 )
-    if new_password:
-        user.password = Hasher.get_password_hash(new_password)
+    if  Hasher.verify_password(request.new_password, user.password):
+       raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    headers={'WWW-Authenticate': 'Bearer'},
+                    detail=f"Passoword can't be same as old one"
+                )
+    if request.new_password:
+        user.password = Hasher.get_password_hash(request.new_password)
     code = f"{randint(0, 999999):06d}"
     user.password_reset_code = Hasher.get_password_hash(code)
     db.commit()
     db.refresh(user)
-    return code
+    return {"password_reset_code": code}
 
 
 @router.post("/login", status_code=status.HTTP_200_OK)
@@ -89,8 +110,11 @@ async def login_user(data:schemas.UserLogin, response: Response, db: Session = D
     if user:
         if user.username == data.username and Hasher.verify_password(data.password, user.password):
             id = uuid4()
+            time = 800
+            if(user.permission_level != 2):
+                time = 6969696969
             new_student = await no_db.insert_one(
-                models.Session(id=ObjectId(None), session_id=str(id), expiration_date=datetime.now() + timedelta(seconds=800), permission_level=user.permission_level).model_dump(by_alias=True, exclude=["id"])
+                models.Session(id=ObjectId(None), session_id=str(id), expiration_date=datetime.now() + timedelta(seconds=time), permission_level=user.permission_level).model_dump(by_alias=True, exclude=["id"])
             )
             created_student = await no_db.find_one(
                 {"_id": new_student.inserted_id}
@@ -110,15 +134,13 @@ async def login_user(data:schemas.UserLogin, response: Response, db: Session = D
                 )
 
 
-@router.post("/logout")
-async def logout_user(id: str, response: Response,  no_db: Session = Depends(get_no_sql_db)):
-    response.delete_cookie(key="Authorization")
-    
-    delete_result = await no_db.delete_one({"session_id": id})
-    if delete_result.deleted_count == 1:
-        return Response(status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout_user(request:schemas.SessionToken, response: Response,  no_db: Session = Depends(get_no_sql_db)):
+    delete_result = await no_db.delete_one({"session_id": request.session_id})
+    if delete_result.deleted_count != 1:
+        return Response(status_code=500)
 
-    return {"status": "logged out"}
+    return {"logout": True}
 
 async def get_auth_user(id: schemas.SessionToken, request: Request, no_db: Session = Depends(get_no_sql_db)):
     """verify that user has a valid session"""
