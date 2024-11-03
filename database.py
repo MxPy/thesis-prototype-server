@@ -5,7 +5,7 @@ import motor.motor_asyncio
 from pymongo import ReturnDocument
 
 #TODO: put it into .env moron
-DATABASE_URL = "postgresql://postgres:mysecretpassword@db/users"
+DATABASE_URL = "postgresql://postgres:mysecretpassword@db/postgres"
 
 
 engine = _sql.create_engine(DATABASE_URL)
