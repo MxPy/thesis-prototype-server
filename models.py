@@ -10,7 +10,7 @@ PyObjectId = Annotated[str, BeforeValidator(str)]
 
 class User(Base):
     __tablename__ = 'auth'
-    id = Column(Integer, primary_key=True, index = True)
+    id = Column(String, primary_key=True)
     username = Column(String)
     password = Column(String)
     password_reset_code = Column(String)

@@ -31,7 +31,7 @@ async def populate_admin():
         user = db.query(models.User).filter(models.User.username == "doman").first()
         if not user:
             code = f"{randint(0, 999999):06d}"
-            new_user = models.User(username = "doman", password = Hasher.get_password_hash("doman"), password_reset_code = Hasher.get_password_hash(code), permission_level=2)
+            new_user = models.User(id=str(uuid4()), username = "doman", password = Hasher.get_password_hash("doman"), password_reset_code = Hasher.get_password_hash(code), permission_level=2)
             logger.info("created doman")
             db.add(new_user)
             db.commit()
@@ -43,7 +43,7 @@ async def register_user(request:schemas.User, db: Session = Depends(get_sql_db))
     if user:
         raise HTTPException(status_code=403, detail=f"User with username: {request.username} already exist")
     code = f"{randint(0, 999999):06d}"
-    new_user = models.User(username = request.username, password = Hasher.get_password_hash(request.password), password_reset_code = Hasher.get_password_hash(code), permission_level= 0)
+    new_user = models.User(id=str(uuid4()),username = request.username, password = Hasher.get_password_hash(request.password), password_reset_code = Hasher.get_password_hash(code), permission_level= 0)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -55,7 +55,7 @@ async def register_user(request:schemas.User, db: Session = Depends(get_sql_db))
     if user:
         raise HTTPException(status_code=403, detail=f"User with username: {request.username} already exist")
     code = f"{randint(0, 999999):06d}"
-    new_user = models.User(username = request.username, password = Hasher.get_password_hash(request.password), password_reset_code = Hasher.get_password_hash(code), permission_level= 1)
+    new_user = models.User(id=str(uuid4()), username = request.username, password = Hasher.get_password_hash(request.password), password_reset_code = Hasher.get_password_hash(code), permission_level= 1)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
