@@ -25,14 +25,14 @@ router = APIRouter(
     tags=['auth'])
 
 
-async def populate_admin():
+async def populate_admin(name: str):
     get_db_wrapper = contextlib.contextmanager(get_sql_db)
     with get_db_wrapper() as db:
-        user = db.query(models.User).filter(models.User.username == "doman").first()
+        user = db.query(models.User).filter(models.User.username == name).first()
         if not user:
             code = f"{randint(0, 999999):06d}"
-            new_user = models.User(id=str(uuid4()), username = "doman", password = Hasher.get_password_hash("doman"), password_reset_code = Hasher.get_password_hash(code), permission_level=2)
-            logger.info("created doman")
+            new_user = models.User(id=str(uuid4()), username = name, password = Hasher.get_password_hash(name), password_reset_code = Hasher.get_password_hash(code), permission_level=2)
+            logger.info(f"created {name}")
             db.add(new_user)
             db.commit()
             db.refresh(new_user)
