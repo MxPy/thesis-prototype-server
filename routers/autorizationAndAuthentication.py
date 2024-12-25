@@ -139,6 +139,10 @@ async def login_user(data:schemas.UserLogin, response: Response, db: Session = D
                     headers={'WWW-Authenticate': 'Bearer'},
                 )
 
+@router.post("/get_permission_level", status_code=status.HTTP_200_OK)
+async def logout_user(userId: str, response: Response,  db: Session = Depends(get_sql_db)):
+    user = db.query(models.User).filter(models.User.id == userId).first()
+    return {"permission_level": user.permission_level}
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout_user(request:schemas.SessionToken, response: Response,  no_db: Session = Depends(get_no_sql_db)):
