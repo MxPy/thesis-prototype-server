@@ -30,17 +30,17 @@ def get_auth_stub():
     channel = grpc.insecure_channel('app-postgres-wrapper:50053')
     return user_auth_pb2_grpc.AuthUserServiceStub(channel)
 
-async def populate_admin(name: str):
-    get_db_wrapper = contextlib.contextmanager(get_sql_db)
-    with get_db_wrapper() as db:
-        user = db.query(models.User).filter(models.User.username == name).first()
-        if not user:
-            code = f"{randint(0, 999999):06d}"
-            new_user = models.User(id=str(uuid4()), username = name, password = Hasher.get_password_hash(name), password_reset_code = Hasher.get_password_hash(code), permission_level=2)
-            logger.info(f"created {name}")
-            db.add(new_user)
-            db.commit()
-            db.refresh(new_user)
+# async def populate_admin(name: str):
+#     get_db_wrapper = contextlib.contextmanager(get_sql_db)
+#     with get_db_wrapper() as db:
+#         user = db.query(models.User).filter(models.User.username == name).first()
+#         if not user:
+#             code = f"{randint(0, 999999):06d}"
+#             new_user = models.User(id=str(uuid4()), username = name, password = Hasher.get_password_hash(name), password_reset_code = Hasher.get_password_hash(code), permission_level=2)
+#             logger.info(f"created {name}")
+#             db.add(new_user)
+#             db.commit()
+#             db.refresh(new_user)
 
 @router.post('/register', status_code=status.HTTP_201_CREATED)
 async def register_user(request: schemas.User):
@@ -63,64 +63,7 @@ async def register_user(request: schemas.User):
             raise HTTPException(status_code=403, detail=f"User with username: {request.username} already exists")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.post('/register-admin', status_code=status.HTTP_201_CREATED)
-async def register_admin(request: schemas.User):
-    stub = get_auth_stub()
-    try:
-        code = f"{randint(0, 999999):06d}"
-        hashed_password = Hasher.get_password_hash(request.password)
-        hashed_code = Hasher.get_password_hash(code)
-        
-        response = stub.RegisterAdmin(
-            user_auth_pb2.RegisterRequest(
-                username=request.username,
-                password=hashed_password,
-                password_reset_code=hashed_code
-            )
-        )
-        return {"user_id": response.user_id, "password_reset_code": code}
-    except grpc.RpcError as e:
-        if e.code() == grpc.StatusCode.ALREADY_EXISTS:
-            raise HTTPException(status_code=403, detail=f"User with username: {request.username} already exists")
-        raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.delete('/delete/{userId}', status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user_by_user_id(userId: str):
-    stub = get_auth_stub()
-    try:
-        stub.DeleteUser(user_auth_pb2.UserIdRequest(user_id=userId))
-        return None
-    except grpc.RpcError as e:
-        if e.code() == grpc.StatusCode.NOT_FOUND:
-            raise HTTPException(status_code=404, detail=f"User with id: {userId} doesn't exist")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-@router.put('/update/{userId}', response_model=schemas.User)
-async def update_user_by_user_id(userId: str, request: schemas.User):
-    stub = get_auth_stub()
-    try:
-        hashed_password = None
-        if request.password:
-            hashed_password = Hasher.get_password_hash(request.password)
-            
-        response = stub.UpdateUser(
-            user_auth_pb2.UpdateUserRequest(
-                user_id=userId,
-                username=request.username if request.username else None,
-                password=hashed_password
-            )
-        )
-        return {
-            "id": response.id,
-            "username": response.username,
-            "password": response.password,
-            "password_reset_code": response.password_reset_code,
-            "permission_level": response.permission_level
-        }
-    except grpc.RpcError as e:
-        if e.code() == grpc.StatusCode.NOT_FOUND:
-            raise HTTPException(status_code=404, detail=f"User with id: {userId} doesn't exist")
-        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.put('/reset_password')
 async def reset_password(request: schemas.ResetPassword):
@@ -195,17 +138,7 @@ async def login_user(data:schemas.UserLogin, response: Response, db: Session = D
             raise HTTPException(status_code=404, detail=f"User with username: {data.username} doesn't exist")
         raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
 
-@router.post("/get_permission_level", status_code=status.HTTP_200_OK)
-async def get_permission_level(userId: str):
-    stub = get_auth_stub()
-    try:
-        response = stub.GetPermissionLevel(user_auth_pb2.UserIdRequest(user_id=userId))
-        logger.info(response)
-        return {"permission_level": response.permission_level}
-    except grpc.RpcError as e:
-        if e.code() == grpc.StatusCode.NOT_FOUND:
-            raise HTTPException(status_code=404, detail=f"User with id: {userId} doesn't exist")
-        raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout_user(request:schemas.SessionToken, response: Response,  no_db: Session = Depends(get_no_sql_db)):

@@ -34,8 +34,8 @@ async def serve():
 
 async def lifespan(app: FastAPI):
     loop = asyncio.get_event_loop()
-    await autorizationAndAuthentication.populate_admin("admin")
-    await autorizationAndAuthentication.populate_admin("doman")
+    # await autorizationAndAuthentication.populate_admin("admin")
+    # await autorizationAndAuthentication.populate_admin("doman")
     # Uruchomienie serwera gRPC w nowym wątku
     grpc_server = loop.create_task(serve())
 
