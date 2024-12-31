@@ -6,37 +6,66 @@ from sqlalchemy.orm import Session
 from typing import List
 from bson import ObjectId
 from pymongo.results import DeleteResult
+import user_auth_pb2
+import user_auth_pb2_grpc
+import grpc
 
 router = APIRouter(
     prefix='/auth/dev',
     tags=['dev'])
 
+def get_auth_stub():
+    channel = grpc.insecure_channel('app-postgres-wrapper:50053')
+    return user_auth_pb2_grpc.AuthUserServiceStub(channel)
+
 @router.delete('/user/delete/all', status_code=status.HTTP_204_NO_CONTENT)
-async def delete_all_users(db: Session = Depends(get_sql_db)):
-    user = db.query(models.User).all()
-    for us in user:
-        db.delete(us)
-    db.commit()
-    return None
+async def delete_all_users():
+    stub = get_auth_stub()
+    try:
+        stub.DeleteAllUsers(user_auth_pb2.Empty())
+        return None
+    except grpc.RpcError as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get('/user/get/all', response_model=List[schemas.User])
-async def get_all_users(db: Session = Depends(get_sql_db)):
-    user = db.query(models.User).all()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f'There are no existing users')
-    return user
+async def get_all_users():
+    stub = get_auth_stub()
+    try:
+        response = stub.GetAllUsers(user_auth_pb2.Empty())
+        return [{
+            "id": user.id,
+            "username": user.username,
+            "password": user.password,
+            "password_reset_code": user.password_reset_code,
+            "permission_level": user.permission_level
+        } for user in response.users]
+    except grpc.RpcError as e:
+        if e.code() == grpc.StatusCode.NOT_FOUND:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail='There are no existing users'
+            )
+        raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.get('/user/get/{user_id}', response_model=schemas.User)
-
-async def get_user_by_user_id(user_id: int, db: Session = Depends(get_sql_db)):
-    """
-    Get the record for a specific session, looked up by `session_id`.
-    """
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id: {user_id} dosen't exist")
-    return user
+@router.get('/user/get/{userId}', response_model=schemas.User)
+async def get_user_by_user_id(userId: str):
+    stub = get_auth_stub()
+    try:
+        response = stub.GetUserById(user_auth_pb2.UserIdRequest(user_id=userId))
+        return {
+            "id": response.id,
+            "username": response.username,
+            "password": response.password,
+            "password_reset_code": response.password_reset_code,
+            "permission_level": response.permission_level
+        }
+    except grpc.RpcError as e:
+        if e.code() == grpc.StatusCode.NOT_FOUND:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User with id: {userId} doesn't exist"
+            )
+        raise HTTPException(status_code=500, detail=f"Internal server error {e}")
 
 @router.get(
     "/session/all",
