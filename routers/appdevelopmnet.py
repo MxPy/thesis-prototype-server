@@ -36,6 +36,7 @@ async def register_admin(request: schemas.User):
     stub = get_auth_stub()
     try:
         code = f"{randint(0, 999999):06d}"
+        
         hashed_password = Hasher.get_password_hash(request.password)
         hashed_code = Hasher.get_password_hash(code)
         
@@ -118,6 +119,27 @@ async def get_all_users():
                 detail='There are no existing users'
             )
         raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get('/user/get-u')
+async def get_user_by_user_id(username: str):
+    stub = get_auth_stub()
+    try:
+        response = stub.GetUserByNickname(user_auth_pb2.UserNickRequest(username=username))
+        print(response)
+        return {
+            "id": response.id,
+            "username": response.username,
+            "password": response.password,
+            "password_reset_code": response.password_reset_code,
+            "permission_level": response.permission_level
+        }
+    except grpc.RpcError as e:
+        if e.code() == grpc.StatusCode.NOT_FOUND:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User with username: {username} doesn't exist"
+            )
+        raise HTTPException(status_code=500, detail=f"Internal server error {e}")
 
 @router.get('/user/get', response_model=schemas.User)
 async def get_user_by_user_id(userId: str):
