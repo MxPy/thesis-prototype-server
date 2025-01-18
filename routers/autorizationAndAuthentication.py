@@ -47,14 +47,16 @@ async def register_user(request: schemas.User):
     stub = get_auth_stub()
     try:
         code = f"{randint(0, 999999):06d}"
-        hashed_password = Hasher.get_password_hash(request.password)
+        salt = f"{randint(0, 999999):06d}"
+        hashed_password = Hasher.get_password_hash(request.password+salt)
         hashed_code = Hasher.get_password_hash(code)
         
         response = stub.RegisterUser(
             user_auth_pb2.RegisterRequest(
                 username=request.username,
                 password=hashed_password,
-                password_reset_code=hashed_code
+                password_reset_code=hashed_code,
+                salt=salt
             )
         )
         return {"user_id": response.user_id, "password_reset_code": code}
@@ -79,7 +81,7 @@ async def reset_password(request: schemas.ResetPassword):
                 detail="Wrong username or password reset code"
             )
             
-        if Hasher.verify_password(request.new_password, user_response.password):
+        if Hasher.verify_password(request.new_password+user_response.salt, user_response.password+user_response.salt):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 headers={'WWW-Authenticate': 'Bearer'},
@@ -104,18 +106,17 @@ async def reset_password(request: schemas.ResetPassword):
         raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
 
 @router.post("/login", status_code=status.HTTP_200_OK)
-async def login_user(data:schemas.UserLogin, response: Response, db: Session = Depends(get_sql_db), no_db: Session = Depends(get_no_sql_db)):
+async def login_user(data:schemas.UserLogin, response: Response, no_db: Session = Depends(get_no_sql_db)):
     stub = get_auth_stub()
     try:
         user = stub.GetUserByNickname(user_auth_pb2.UserNickRequest(username=data.username))
         logger.info(user)
         if user:
-            if user.username == data.username and Hasher.verify_password(data.password, user.password):
+            if user.username == data.username and Hasher.verify_password(data.password+user.salt, user.password+user.salt):
                 id = uuid4()
                 time = SESSION_EXPIRATION_TIME_S
                 if(user.permission_level == 2):
-                    time = 6969696969
-                    #logger.info("chuuuuuuuuj")
+                    time = 123456789
                 new_student = await no_db.insert_one(
                     models.Session(id=ObjectId(None), session_id=str(id), expiration_date=datetime.utcnow() + timedelta(seconds=time), permission_level=user.permission_level).model_dump(by_alias=True, exclude=["id"])
                 )
