@@ -62,6 +62,7 @@ message ResetPasswordRequest {
   string username = 1;
   string password_reset_code = 2;
   string new_password = 3;
+  string salt = 4;
 }
 
 message ResetPasswordResponse {

@@ -9,7 +9,7 @@ DATABASE_URL = "postgresql://postgres:mysecretpassword@db/postgres"
 
 
 engine = _sql.create_engine(DATABASE_URL)
-client = motor.motor_asyncio.AsyncIOMotorClient("mongodb://Username:Password@mongo/sessions?retryWrites=true&w=majority")
+
 
 SessionLocal = _orm.sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = _declarative.declarative_base()
@@ -20,7 +20,8 @@ def get_sql_db():
         yield db
     finally:
         db.close()
-        
+
+client = motor.motor_asyncio.AsyncIOMotorClient("mongodb://Username:Password@mongo/sessions?retryWrites=true&w=majority")
 def get_no_sql_db():
     db = client.sessions
     sessions_collection = db.get_collection("sessions")
