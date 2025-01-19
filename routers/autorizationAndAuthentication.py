@@ -89,14 +89,16 @@ async def reset_password(request: schemas.ResetPassword):
             )
             
         new_code = f"{randint(0, 999999):06d}"
-        hashed_new_password = Hasher.get_password_hash(request.new_password)
+        new_salt = f"{randint(0, 999999):06d}"
+        hashed_new_password = Hasher.get_password_hash(request.new_password+new_salt)
         hashed_new_code = Hasher.get_password_hash(new_code)
         
         response = stub.ResetPassword(
             user_auth_pb2.ResetPasswordRequest(
                 username=request.username,
                 password_reset_code=hashed_new_code,
-                new_password=hashed_new_password
+                new_password=hashed_new_password,
+                salt=new_salt
             )
         )
         return {"password_reset_code": new_code}
