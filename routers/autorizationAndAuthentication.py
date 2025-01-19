@@ -221,30 +221,25 @@ async def logout_user(request:schemas.SessionToken, response: Response,  no_db: 
 #     return status.HTTP_200_OK
 class AuthServiceServicer(auth_pb2_grpc.AuthServiceServicer):
     def __init__(self):
-        # Pobranie instancji bazy danych z generatora
         self.no_db = next(get_no_sql_db())
 
     async def AuthUser(self, request: auth_pb2.Token, context: grpc.aio.ServicerContext) -> auth_pb2.AuthResponse:
         try:
             if not request.session_id:
                 return auth_pb2.AuthResponse(code=401, detail="Wrong session_id")
-            
-            # Wykonanie asynchronicznej operacji w aktywnej pętli zdarzeń
+        
             student = await self.no_db.find_one({"session_id": request.session_id})
             if not student:
                 return auth_pb2.AuthResponse(code=403, detail="Session not found")
 
-            # Sprawdzanie uprawnień
             if request.user_type >= 1 and student["permission_level"] < request.user_type:
                 return auth_pb2.AuthResponse(code=401, detail="Insufficient permissions")
 
-            # Sprawdzanie wygaśnięcia sesji
             if request.user_type != 2 and student["expiration_date"] < datetime.utcnow():
                 return auth_pb2.AuthResponse(code=401, detail="session_id expired")
 
-            # Aktualizacja czasu wygaśnięcia
             new_expiration = datetime.utcnow() + timedelta(
-                seconds=6969696969 if request.user_type == 2 
+                seconds=1234567890 if request.user_type == 2 
                 else SESSION_EXPIRATION_TIME_S
             )
             
