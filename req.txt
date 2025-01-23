@@ -19,3 +19,6 @@ grpcio
 grpcio-tools
 protobuf
 asyncio
+pytest
+httpx
+pytest-asyncio

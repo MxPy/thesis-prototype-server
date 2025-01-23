@@ -1,6 +1,6 @@
 from fastapi import Depends, status, HTTPException, APIRouter, Body, Response, Request
 import schemas, models
-from database import get_sql_db, get_no_sql_db
+from database import get_no_sql_db
 from uuid import uuid4
 from sqlalchemy.orm import Session
 from fastapi.responses import RedirectResponse, JSONResponse
@@ -56,7 +56,6 @@ async def register_user(request: schemas.User):
                 username=request.username,
                 password=hashed_password,
                 password_reset_code=hashed_code,
-                salt=salt
             )
         )
         return {"user_id": response.user_id, "password_reset_code": code}
@@ -90,7 +89,7 @@ async def reset_password(request: schemas.ResetPassword):
             
         new_code = f"{randint(0, 999999):06d}"
         new_salt = f"{randint(0, 999999):06d}"
-        hashed_new_password = Hasher.get_password_hash(request.new_password+)
+        hashed_new_password = Hasher.get_password_hash(request.new_password)
         hashed_new_code = Hasher.get_password_hash(new_code)
         
         response = stub.ResetPassword(

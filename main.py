@@ -20,8 +20,8 @@ logging.basicConfig(
     )
 
 
-models.Base.metadata.drop_all(bind = engine)
-models.Base.metadata.create_all(bind = engine)
+# models.Base.metadata.drop_all(bind = engine)
+# models.Base.metadata.create_all(bind = engine)
 async def serve():
     server = grpc.aio.server()
     auth_servicer = autorizationAndAuthentication.AuthServiceServicer()

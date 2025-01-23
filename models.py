@@ -1,4 +1,4 @@
-from database import Base
+#from database import Base
 from datetime import datetime
 from sqlalchemy import Column, Integer, String
 from typing_extensions import Annotated
@@ -8,13 +8,13 @@ from pydantic import ConfigDict, BaseModel, Field
 
 PyObjectId = Annotated[str, BeforeValidator(str)]
 
-class User(Base):
-    __tablename__ = 'auth'
-    id = Column(String, primary_key=True)
-    username = Column(String)
-    password = Column(String)
-    password_reset_code = Column(String)
-    permission_level = Column(Integer) #0 - user, #1 - admin, #2 - backend admin
+# class User(Base):
+#     __tablename__ = 'auth'
+#     id = Column(String, primary_key=True)
+#     username = Column(String)
+#     password = Column(String)
+#     password_reset_code = Column(String)
+#     permission_level = Column(Integer) #0 - user, #1 - admin, #2 - backend admin
     
 class Session(BaseModel):
     """

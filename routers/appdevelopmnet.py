@@ -1,7 +1,7 @@
 from fastapi import Depends, status, HTTPException, APIRouter, Body, Request
 from fastapi.responses import Response
 import schemas, models
-from database import get_sql_db, get_no_sql_db
+from database import get_no_sql_db
 from sqlalchemy.orm import Session
 from typing import List
 from bson import ObjectId

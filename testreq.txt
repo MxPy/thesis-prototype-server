@@ -1,2 +1,10 @@
-requests
+grpcio
 pytest
+fastapi
+httpx
+pytest-asyncio
+grpcio-tools
+protobuf
+sqlalchemy
+motor
+psycopg2
