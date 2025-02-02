@@ -56,6 +56,7 @@ async def register_user(request: schemas.User):
                 username=request.username,
                 password=hashed_password,
                 password_reset_code=hashed_code,
+                salt = salt
             )
         )
         return {"user_id": response.user_id, "password_reset_code": code}
@@ -72,7 +73,7 @@ async def reset_password(request: schemas.ResetPassword):
     try:
         # First get the user to verify the reset code and current password
         user_response = stub.GetUserByNickname(user_auth_pb2.UserNickRequest(username=request.username))
-        logger.info(user_response)
+        
         if not Hasher.verify_password(request.password_reset_code, user_response.password_reset_code):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -80,9 +81,9 @@ async def reset_password(request: schemas.ResetPassword):
                 detail="Wrong username or password reset code"
             )
             
-        if Hasher.verify_password(request.new_password+user_response.salt, user_response.password+user_response.salt):
+        if Hasher.verify_password(request.new_password+user_response.salt, user_response.password):
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
+                status_code=status.HTTP_403_FORBIDDEN,
                 headers={'WWW-Authenticate': 'Bearer'},
                 detail="Password can't be same as old one"
             )
@@ -106,14 +107,48 @@ async def reset_password(request: schemas.ResetPassword):
             raise HTTPException(status_code=404, detail=f"User with username: {request.username} doesn't exist")
         raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
 
+@router.post("/avatar", status_code=status.HTTP_200_OK)
+async def login_user(user_id: str, avatar_link: str, response: Response):
+    stub = get_auth_stub()
+    try:
+        response = stub.SetAvatar(user_auth_pb2.SetAvatarRequest(user_id=user_id, avatar_link=avatar_link))
+        
+        if response:
+                return {"avatar_link": response.avatar_link}
+        raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        headers={'WWW-Authenticate': 'Bearer'},
+                    )
+    except grpc.RpcError as e:
+        if e.code() == grpc.StatusCode.NOT_FOUND:
+            raise HTTPException(status_code=404, detail=f"User with user_id: {user_id} doesn't exist")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
+    
+@router.get("/avatar", status_code=status.HTTP_200_OK)
+async def login_user(user_id: str, response: Response):
+    stub = get_auth_stub()
+    try:
+        response = stub.GetAvatar(user_auth_pb2.GetAvatarRequest(user_id=user_id))
+        
+        if response:
+                return {"avatar_link": response.avatar_link}
+        raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        headers={'WWW-Authenticate': 'Bearer'},
+                    )
+    except grpc.RpcError as e:
+        if e.code() == grpc.StatusCode.NOT_FOUND:
+            raise HTTPException(status_code=404, detail=f"User with user_id: {user_id} doesn't exist")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
+    
 @router.post("/login", status_code=status.HTTP_200_OK)
 async def login_user(data:schemas.UserLogin, response: Response, no_db: Session = Depends(get_no_sql_db)):
     stub = get_auth_stub()
     try:
         user = stub.GetUserByNickname(user_auth_pb2.UserNickRequest(username=data.username))
-        logger.info(user)
+        
         if user:
-            if user.username == data.username and Hasher.verify_password(data.password+user.salt, user.password+user.salt):
+            if user.username == data.username and Hasher.verify_password(data.password+user.salt, user.password):
                 id = uuid4()
                 time = SESSION_EXPIRATION_TIME_S
                 if(user.permission_level == 2):
@@ -139,6 +174,7 @@ async def login_user(data:schemas.UserLogin, response: Response, no_db: Session 
         if e.code() == grpc.StatusCode.NOT_FOUND:
             raise HTTPException(status_code=404, detail=f"User with username: {data.username} doesn't exist")
         raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
+
 
 
 

@@ -12,6 +12,8 @@ service AuthUserService {
   rpc GetPermissionLevel(UserIdRequest) returns (PermissionLevelResponse);
   rpc GetUserByNickname(UserNickRequest) returns (User);
   rpc Login(LoginRequest) returns (LoginResponse);
+  rpc SetAvatar(SetAvatarRequest) returns (AvatarResponse);
+  rpc GetAvatar(GetAvatarRequest) returns (AvatarResponse);
   
   // Dev operations for users
   rpc DeleteAllUsers(Empty) returns (Empty);
@@ -29,6 +31,7 @@ message User {
   string password_reset_code = 4;
   int32 permission_level = 5;  // 0 - user, 1 - admin, 2 - backend admin
   string salt = 6;
+  string avatar_link = 7;
 }
 
 
@@ -37,6 +40,20 @@ message RegisterRequest {
   string username = 1;
   string password = 2;
   string password_reset_code = 3;
+  string salt = 4;
+}
+
+message SetAvatarRequest {
+  string user_id = 1;
+  string avatar_link = 2;
+}
+
+message GetAvatarRequest {
+  string user_id = 1;
+}
+
+message AvatarResponse {
+  string avatar_link = 1;
 }
 
 message RegisterResponse {

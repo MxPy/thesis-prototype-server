@@ -36,15 +36,16 @@ async def register_admin(request: schemas.User):
     stub = get_auth_stub()
     try:
         code = f"{randint(0, 999999):06d}"
-        
-        hashed_password = Hasher.get_password_hash(request.password)
+        salt = f"{randint(0, 999999):06d}"
+        hashed_password = Hasher.get_password_hash(request.password+salt)
         hashed_code = Hasher.get_password_hash(code)
         
         response = stub.RegisterAdmin(
             user_auth_pb2.RegisterRequest(
                 username=request.username,
                 password=hashed_password,
-                password_reset_code=hashed_code
+                password_reset_code=hashed_code,
+                salt = salt
             )
         )
         return {"user_id": response.user_id, "password_reset_code": code}
